@@ -1,0 +1,23 @@
+services:
+  # Servicio de la base de datos MariaDB
+  mariadb:
+    image: mariadb:lts-ubi9
+    container_name: mariadb_classroom
+    ports:
+      - "3307:3306"
+    env_file:
+      - .env # Carga las variables necesarias del .env
+    volumes:
+      - ./dbdata:/var/lib/mysql:Z # Persistencia de los datos de nuestra base de datos
+
+  # Servicio de nuestra API en Express.js
+  api:
+    build: .
+    container_name: api_classroom
+    ports:
+      - "6060:6060" # Nuestra API estará funcionando en localhost:6060
+    env_file:
+      - .env # Carga las variables necesarias del .env
+    depends_on:
+      - mariadb
+    restart: unless-stopped

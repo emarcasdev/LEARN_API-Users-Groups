@@ -1,0 +1,4 @@
+dbdata
+dbdata/**
+node_modules
+.git
