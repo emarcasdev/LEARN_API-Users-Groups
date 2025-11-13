@@ -8,7 +8,12 @@ app.use(express.json());
 app.use(cors({ origin: process.env.FRONT_ORIGIN || "http://localhost:4200" }));
 
 // Conexión a MariaDB
-const mysqlUri = process.env.MYSQL_URI;
+const HOST_DB = process.env.MYSQL_HOST
+const USER_DB = process.env.MYSQL_USER
+const PASSWORD_DB = process.env.MYSQL_PASSWORD
+const PORT_DB = process.env.MYSQL_PORT
+const DATABASE_DB = process.env.MYSQL_DATABASE
+// Tablas de la db
 const TABLE_USERS = process.env.TABLE_USERS;
 const TABLE_GROUPS = process.env.TABLE_GROUPS;
 
@@ -16,11 +21,38 @@ const TABLE_GROUPS = process.env.TABLE_GROUPS;
 let db;
 (async () => {
   try {
-    db = await mysql.createConnection(mysqlUri);
+    // Conexion a MariaDB
+    const connection = {
+      host: HOST_DB,
+      user: USER_DB,
+      password: PASSWORD_DB,
+      port: PORT_DB || 3306,
+    };
+
+    // Connectarnos a MariaDB 
+    const conn = await mysql.createConnection(connection);
+
+    // Creamos la base de datos classroom_db si no existiera
+    await conn.query(
+      `CREATE DATABASE IF NOT EXISTS \`${DATABASE_DB}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`
+    );
+    console.log("-- Comprobación BD realizada");
+
+    // Finalizar conexión para verificar si teniamos creada la bd
+    await conn.end();
+
+    // Conectar a la base de datos de classroom_db
+    db = await mysql.createConnection({
+      ...connection,
+      database: DATABASE_DB,
+    });
+
     await db.ping();
     console.log("✅ Conectado a MariaDB");
 
     await createTablesIfNotExist();
+    console.log("-- Comprobación Tablas realizada");
+
   } catch (err) {
     console.error("❌ Error al conectar a MariaDB:", err.message);
     process.exit(1);
