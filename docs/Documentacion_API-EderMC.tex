@@ -1,0 +1,559 @@
+\documentclass[a4paper,12pt]{report}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage{textcomp}
+\usepackage{lmodern}
+\usepackage{float}
+\usepackage[margin=2.5cm]{geometry}
+% ===== Imagenes =====
+\usepackage{graphicx}
+\DeclareGraphicsExtensions{.png}
+\graphicspath{{images/}}
+% ===== Tablas =====
+\usepackage{array}
+\usepackage{tabularx}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+% ===== Hipervínculos =====
+\usepackage[hidelinks]{hyperref}
+% ===== Numeración de secciones =====
+\renewcommand\thesection{\arabic{section}}
+\makeatletter
+\makeatother
+% ===== Estilos para el recuadro bash para API =====
+\usepackage{xcolor}
+\usepackage{listings}
+\definecolor{codebg}{RGB}{245,245,245}
+\lstdefinestyle{bash}{
+  language=bash,
+  basicstyle=\ttfamily\small,
+  backgroundcolor=\color{codebg},
+  frame=single,
+  breaklines=true,
+  showstringspaces=false
+}
+
+% ===== Documento =====
+\title{DOCUMENTACIÓN DE LA API DOCKERIZADA \\\LARGE Gestión de Usuarios y Grupos}
+\author{Eder Martínez Castro}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\clearpage
+
+\section{Introducción}
+\noindent En este documento se detalla la API para la \textbf{gestión de usuario y grupos de un colegio/centro},
+esta fue desarrollada con \textbf{Node.js}, \textbf{Express} y \textbf{MariaDB}.\\
+La API nos permite poder \texttt{listar alumnos/usuarios y clases/grupos}, \texttt{crear un nuevo usuario/alumno y clase/grupo}, \texttt{actualizar la nota de un usuario/alumno} y \texttt{borrar un usuario/alumno}.
+
+\vspace{1em}
+\noindent Este proyecto está \textbf{Dockerizado}, utilizando \textbf{Docker} y \textbf{Docker Compose} para levantar nuestra base de datos
+\textbf{MariaDB} como nuestra API en Express.js.
+
+\vspace{1em}
+\noindent Puedes ver el código completo de la API en este repositorio: \href{https://github.com/emarcasdev/LEARN_API-Users-Groups}{API-Users-Groups}.
+
+\section{Arquitectura}
+\noindent La API sigue una arquitectura simple de Express accediendo a la base de datos de\\ \textbf{MariaDB}
+usando el cliente \textbf{msql2/promise}. Se adopta el patrón de arquitectura \textbf{cliente-servidor}, donde el cliente realiza peticiones HTTP al servidor,
+y este le responde con los datos o mensajes de estado correspondientes.
+
+\vspace{1em}
+
+\noindent Nuestro servidor \textbf{Node} se conecta a la base de datos en el arranque, y en caso que no existan las tablas \texttt{users} y \texttt{groups}, se
+crearán automáticamente usando la funcion \texttt{createTablesIfNotExists()}, así dejamos la API lista para que se pueda conectar. Toda la lógica la tenemos en un
+único archivo \texttt{server.js}, lo cúal simplifica la estructura del prouecto al ser una API con solo 5 endpoints.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=.65\linewidth]{CLIENTE-SERVIDOR.png}
+    \caption{Patrón de arquitectura cliente-servidor}
+    \label{fig:arquitecture}
+\end{figure}
+
+\subsection{Clases}
+\noindent En este caso como bien hemos comentado anteriormente al ser una API muy simple con 5 endpoints no hizo falta crear ninguna clase.
+
+\subsection{Patrones de diseño}
+\noindent Ahora vamos a explicar el \textbf{patrón de diseño empleado}, que nos permiten estructurar el flujo de ejecución y como interactan.
+Usar los patrones nos ayuda a mantener el \textbf{código modular}, \textbf{legible} y \textbf{ampliarlo facilmente} en un futuro.
+
+\subsubsection{- Patrón Mediator/Middleware}
+\noindent Express ya implementa el \textbf{patrón Mediator/Middleware}, este patrón nos permite poder encadenar funciones intermedias
+entre la solicitud y respuesta, facilitando la \textbf{extensión del comportamiento del servidor}, haciendo que el flujo de
+ejecución sea modular y reutilizable.
+\vspace{1em}
+
+En este proyecto se usan:
+\begin{itemize}
+    \item \texttt{express.json()}: parsea a JSON el "body" de las peticiones.
+    \item \texttt{cors()}: permite solicitudes solo desde orígenes conocidos.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=.85\linewidth]{MIDDLEWARE.png}
+    \caption{Patrón Mediator/Middleware}
+    \label{fig:patterns}
+\end{figure}
+
+
+\subsection{Stack empleado}
+Para el desarrollo de la API, se utiliza los siguietes tecnológias:
+\begin{itemize}
+    \item Utilizamos \texttt{Node.js} como \textbf{entorno de ejecución} principal.
+    \item Utilizamos \texttt{Express.js} para crear la API en JavaScript.
+    \item Utilizamos \texttt{MariaDB} como nuestra \textbf{base de datos relacional}, levantado en un contenedor Docker.
+    \item Utilizamos \texttt{Docker} y \texttt{Docker Compose} para orquestar tanto la base de datos como la API.
+\end{itemize}
+
+\section{Dependencias utilizadas}
+Para nuestra API hemos utilizado principalmente \textbf{4 dependencias}:
+\begin{itemize}
+    \item Utilizamos \texttt{express} como \textbf{servidor HTTP} para definir rutas y manejar peticiones.
+    \item Utilizamos \texttt{mysql2/promise} para conectarnos a la base de datos \textbf{MariaDB} usando promesas.
+    \item Utilizamos \texttt{cors} para \textbf{configurar el CORS} y solo permitir las solicitudes desde orígenes conocidos que definimos.
+    \item Utilizamos \texttt{dotenv} para la poder \textbf{cargar las variables de entorno} protegidas desde el archivo \texttt{.env}.
+\end{itemize}
+
+\section{Modelo de datos}
+En nuestra API tenemos estás dos tablas principales en \textbf{MariaDB}:
+
+\begin{itemize}
+  \item \textbf{Tabla de grupos} (\texttt{TABLE\_GROUPS}):
+  \begin{itemize}
+    \item \texttt{id}: Identificador de nuestro grupo.
+    \item \texttt{group\_name}: Nombre del grupo.
+  \end{itemize}
+
+  \item \textbf{Tabla de usuarios} (\texttt{TABLE\_USERS}):
+  \begin{itemize}
+    \item \texttt{id}: Identificador de nuestro usuario.
+    \item \texttt{name}: Nombre del usuario.
+    \item \texttt{surname}: Apellidos del usuario.
+    \item \texttt{marks}: Nota del usuario.
+    \item \texttt{group\_id}: Identificador del grupo al que pertenece el usuario.
+  \end{itemize}
+\end{itemize}
+
+\noindent Como comentamos anteriormente si no tenemos estas tablas al iniciar nuestra API las creamos con la función \texttt{createTablesIfNotExist()}
+
+\section{Endpoints}
+\noindent A continuación explicaremos cada uno de los endpoints de nuestra API:
+
+\begin{itemize}
+  \item \textbf{GET} \texttt{/} - Comprobar que la API funciona.
+  \item \textbf{GET} \texttt{/api/users-groups} - Obtener todos los usuarios y grupos.
+  \item \textbf{POST} \texttt{/api/user} - Crear un nuevo usuario.
+  \item \textbf{POST} \texttt{/api/group} - Crear un nuevo grupo.
+  \item \textbf{PUT} \texttt{/api/user/:id/marks} - Actualizar la nota de un usuario.
+  \item \textbf{DELETE} \texttt{/api/user/:id} - Eliminar un usuario.
+\end{itemize}
+
+\subsection*{\textbf{GET} \texttt{/} - Comprobar el estado de la API}
+\noindent Este endpoint nos sirve para verificar rápidamente que la API está desplegada y respondiendo.
+
+\vspace{1em}
+\noindent\textbf{Respuesta}\\
+\texttt{200 - Successful Response}
+\begin{lstlisting}[style=bash]
+API FUNCIONANDO
+\end{lstlisting}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{API-READY.png}
+  \caption{Captura de comprobación del funcionamiento del endpoint usando \textbf{Thunder Client}: \textbf{GET} \texttt{/}}
+  \label{fig:endpoints}
+\end{figure}
+
+\subsection*{\textbf{GET} \texttt{/api/users-groups} - Listar usuarios y grupos}
+\noindent Este endpoint nos recupera toda la información de la table usuarios y grupos que tenemos en la base de datos.
+
+\vspace{1em}
+\noindent\textbf{Ejemplo de uso}
+\begin{itemize}
+  \item \textbf{GET} - \texttt{/api/users-groups}
+\end{itemize}
+
+\vspace{1em}
+\noindent\textbf{Respuesta}\\
+\texttt{200 - Successful Response}
+\begin{lstlisting}[style=bash]
+{
+  "users": [
+    {
+      "id": 1,
+      "name": "Ivan",
+      "surname": "Priego",
+      "marks": 8,
+      "group_id": 1
+    }
+  ],
+  "groups": [
+    {
+      "id": 1,
+      "group_name": "1A"
+    }
+  ]
+}
+\end{lstlisting}
+
+\vspace{1em}
+\noindent\textbf{Errores}\\
+\texttt{500 - Internal Server Error}
+\begin{lstlisting}[style=bash]
+{"message": "Error en el servidor", "error": "<detalle>"}
+\end{lstlisting}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{GET.png}
+  \caption{Captura de comprobación del funcionamiento del endpoint usando \textbf{Thunder Client}: \textbf{GET} \texttt{/api/users-groups}}
+  \label{fig:endpoints}
+\end{figure}
+
+\subsection*{\textbf{POST} \texttt{/api/user} - Crear usuario}
+\noindent Este endpoint nos permite crear un nuevo usuario en la base de datos. Recibe los siguientes parámetros
+\texttt{name}, \texttt{surname}, \texttt{marks} y \texttt{groupId}.
+
+\vspace{1em}
+\noindent\textbf{Body (JSON)}
+\begin{lstlisting}[style=bash]
+{
+  "name": "Ivan",
+  "surname": "Priego",
+  "marks": 9,
+  "groupId": 1
+}
+\end{lstlisting}
+
+\vspace{1em}
+\noindent\textbf{Respuestas}\\
+\texttt{201 - Created}
+\begin{lstlisting}[style=bash]
+{
+  "message": "Usuario creado correctamente",
+  "user": {
+    "id": 3,
+    "name": "Ivan",
+    "surname": "Priego",
+    "marks": 9,
+    "group_id": 1
+  }
+}
+\end{lstlisting}
+
+\clearpage
+\noindent\textbf{Errores}\\
+\texttt{400 - Bad Request}
+\begin{lstlisting}[style=bash]
+{"message": "Falta alguno de los 4 campos requeridos"}
+\end{lstlisting}
+
+\noindent \texttt{400 - Bad Request}
+\begin{lstlisting}[style=bash]
+{"message": "La notado del usario tiene que ser un entero."}
+\end{lstlisting}
+
+\noindent \texttt{500 - Internal Server Error}
+\begin{lstlisting}[style=bash]
+{"message": "Error en el servidor", "error": "<detalle>"}
+\end{lstlisting}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{post-user.png}
+  \caption{Captura de comprobación del funcionamiento del endpoint usando \textbf{Thunder Client}: \textbf{POST} \texttt{/api/user}}
+  \label{fig:endpoints}
+\end{figure}
+
+\subsection*{\textbf{POST} \texttt{/api/group} - Crear grupo}
+\noindent Este endpoint nos permite crear un nuevo grupo en la base de datos. Recibe el siguiente parámetro 
+\texttt{groupName}.
+
+\vspace{1em}
+\noindent\textbf{Body (JSON)}
+\begin{lstlisting}[style=bash]
+{
+  "groupName": "1A"
+}
+\end{lstlisting}
+
+\vspace{1em}
+\noindent\textbf{Respuestas}\\
+\texttt{201 - Created}
+\begin{lstlisting}[style=bash]
+{
+  "message": "Grupo creado correctamente",
+  "group": {
+    "id": 1,
+    "group_name": "1A"
+  }
+}
+\end{lstlisting}
+
+\vspace{1em}
+\noindent\textbf{Errores}\\
+\texttt{400 - Bad Request}
+\begin{lstlisting}[style=bash]
+{"message": "Falta el campo requerido"}
+\end{lstlisting}
+
+\noindent \texttt{500 - Internal Server Error}
+\begin{lstlisting}[style=bash]
+{"message": "Error en el servidor", "error": "<detalle>"}
+\end{lstlisting}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{POST-GROUP.png}
+  \caption{Captura de comprobación del funcionamiento del endpoint usando \textbf{Thunder Client}: \textbf{POST} \texttt{/api/group}}
+  \label{fig:endpoints}
+\end{figure}
+
+\subsection*{\textbf{PUT} \texttt{/api/user/:id/marks} - Actualizar la nota de un usuario}
+\noindent Este endpoint nos permite poder actualizar la nota (\texttt{marks}) de un usuario mediante su \texttt{id}.
+
+\vspace{1em}
+\noindent\textbf{Parámetros de ruta}
+\begin{itemize}
+  \item \texttt{id}: id del usuario.
+\end{itemize}
+
+\noindent\textbf{Body (JSON)}
+\begin{lstlisting}[style=bash]
+{
+  "marks": 7
+}
+\end{lstlisting}
+
+\vspace{1em}
+\noindent\textbf{Respuestas}\\
+\texttt{200 - Successful Response}
+\begin{lstlisting}[style=bash]
+{
+  "message": "La nota del usario cambio a: 7",
+  "user": { "id": 3 }
+}
+\end{lstlisting}
+
+\vspace{1em}
+\noindent\textbf{Errores}\\
+\texttt{400 - Bad Request}
+\begin{lstlisting}[style=bash]
+{"message": "Falta el id para poder cambiar la nota"}
+\end{lstlisting}
+
+\noindent \texttt{400 - Bad Request}
+\begin{lstlisting}[style=bash]
+{"message": "La notado del usario tiene que ser un entero."}
+\end{lstlisting}
+
+\noindent \texttt{404 - Not Found}
+\begin{lstlisting}[style=bash]
+{"message": "Usuario no encontrado en la base de datos"}
+\end{lstlisting}
+
+\noindent \texttt{500 - Internal Server Error}
+\begin{lstlisting}[style=bash]
+{"message": "Error en el servidor", "error": "<detalle>"}
+\end{lstlisting}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{PUT.png}
+  \caption{Captura de comprobación del funcionamiento del endpoint usando \textbf{Thunder Client}: \textbf{PUT} \texttt{/api/user/:id/marks}}
+  \label{fig:endpoints}
+\end{figure}
+
+\subsection*{\textbf{DELETE} \texttt{/api/user/:id} - Eliminar usuario}
+\noindent Este endpoint nos permite poder eliminar un usuario de la base de datos a partir de su \texttt{id}.
+
+\vspace{1em}
+\noindent\textbf{Parámetros de ruta}
+\begin{itemize}
+  \item \texttt{id}: identificador del usuario.
+\end{itemize}
+
+\vspace{1em}
+\noindent\textbf{Respuestas}\\
+\texttt{200 - Successful Response}
+\begin{lstlisting}[style=bash]
+{
+  "message": "Usuario eliminada correctamente",
+  "user": { "id": 3 }
+}
+\end{lstlisting}
+
+\vspace{1em}
+\noindent\textbf{Errores}\\
+\texttt{400 - Bad Request}
+\begin{lstlisting}[style=bash]
+{"message": "Falta el id para poder eliminar"}
+\end{lstlisting}
+
+\noindent \texttt{404 - Not Found}
+\begin{lstlisting}[style=bash]
+{"message": "Usuario no encontrado en la base de datos"}
+\end{lstlisting}
+
+\noindent \texttt{500 - Internal Server Error}
+\begin{lstlisting}[style=bash]
+{"message": "Error en el servidor", "error": "<detalle>"}
+\end{lstlisting}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{DELETE.png}
+  \caption{Captura de comprobación del funcionamiento del endpoint usando \textbf{Thunder Client}: \textbf{DELETE} \texttt{/api/user/:id}}
+  \label{fig:endpoints}
+\end{figure}
+
+\vspace{1em}
+
+\section{Despliegue dockerizado}
+\noindent La API se desplegará mediante \textbf{Docker} y \textbf{Docker Compose}, levantando
+la base de datos \textbf{MariaDB} y la API de Express.
+
+\subsection{Variables de entorno}
+\noindent Todas las variables que necesariasestan declaradas en el archivo \texttt{.env}.
+Un ejemplo del contenido que necestariamos en el archivo sería:
+
+\begin{table}[H]
+  \centering
+  \begin{tabularx}{\linewidth}{|l|Y|}
+    \hline
+    \textbf{Clave} & \textbf{Valor (ejemplo)} \\
+    \hline
+    PORT & \texttt{6060} \\
+    \hline
+    FRONT\_ORIGIN & \url{http://localhost:4200} \\
+    \hline
+    MYSQL\_URI & \texttt{mysql://user:password@mariadb:3306/db} \\
+    \hline
+    TABLE\_USERS & \texttt{users} \\
+    \hline
+    TABLE\_GROUPS & \texttt{groups} \\
+    \hline
+    MYSQL\_ROOT\_PASSWORD & \texttt{rootpassword} \\
+    \hline
+    MYSQL\_DATABASE & \texttt{db} \\
+    \hline
+    MYSQL\_USER & \texttt{user} \\
+    \hline
+    MYSQL\_PASSWORD & \texttt{password} \\
+    \hline
+  \end{tabularx}
+\end{table}
+
+\subsection{Dockerfile de la API}
+\noindent En el \texttt{Dockerfile} definimos la imagen para la API en Express.js:
+
+\begin{lstlisting}[style=bash]
+# Imagen base
+FROM node:20
+
+# Directorio de trabajo en el contenedor
+WORKDIR /api
+
+# Copiamos el package.json y el package-lock.json
+COPY package*.json ./
+
+# Instalamos las dependencias necesarias
+RUN npm install
+
+# Copiar el resto de nuestra API
+COPY . .
+
+# Puerto donde estara nuestro contenedor
+EXPOSE 6000
+
+# Comando para ejecutar la API
+CMD [ "node", "server.js" ]
+\end{lstlisting}
+
+\clearpage
+\subsection{docker-compose.yml}
+\noindent En el archivo \texttt{docker-compose.yml} definimos los servicios para la base de datos 
+y la API:
+
+\begin{lstlisting}[style=bash]
+services:
+  # Servicio para MariaDB
+  mariadb:
+    image: mariadb:lts-ubi9
+    container_name: mariadb_classroom
+    ports:
+      - "3307:3306"
+    env_file:
+      - .env # Cargar las variables del .env
+    volumes:
+      - ./dbdata:/var/lib/mysql:Z # Persistencia de la base de datos
+
+  # Servicio para la API
+  api:
+    build: .
+    container_name: api_classroom
+    ports:
+      - 6060:6060 # La API estara corriendo en localhost:6060
+    env_file:
+      - .env # Cargar las variables del .env
+    depends_on:
+      - mariadb
+    restart: unless-stopped
+\end{lstlisting}
+
+\subsection{Arranque del proyecto con Docker Compose}
+\noindent Una vez creado el archivo \texttt{.env}, el \texttt{Dockerfile} y el \texttt{docker-compose.yml}, 
+ya podremos probarlo:
+
+\begin{enumerate}
+  \item Construir las imágenes (si lo necesitamos):
+\begin{lstlisting}[style=bash]
+docker compose build
+\end{lstlisting}
+
+  \item Levantar los servicios:
+\begin{lstlisting}[style=bash]
+docker compose up -d
+\end{lstlisting}
+
+  \item Nuestra API estará corriendo en:
+\begin{lstlisting}[style=bash]
+http://localhost:6060
+\end{lstlisting}
+
+  \item Para poder ver los logs de la API:
+\begin{lstlisting}[style=bash]
+docker compose logs -f api
+\end{lstlisting}
+\end{enumerate}
+
+\subsection{Comprobación del despliegue}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{DOCKER.png}
+  \caption{Desplegando y reconstruyendo los servicios mediante el comando \textbf{docker compose up -d --build}, a parte este comando no nos mostrará los logs gracias al \texttt{-d} para tener la terminal más limpia.}
+  \label{fig:endpoints}
+\end{figure}
+
+\begin{lstlisting}[style=bash]
+  docker compose up -d --build
+\end{lstlisting}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{VERIFICATION.png}
+  \caption{Verificamos el estado de nuestros contenedores tras el despliegue utilizando el comando \textbf{docker compose ps}}
+  \label{fig:endpoints}
+\end{figure}
+
+\begin{lstlisting}[style=bash]
+  docker compose ps
+\end{lstlisting}
+
+\end{document}
