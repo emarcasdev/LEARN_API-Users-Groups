@@ -556,4 +556,51 @@ docker compose logs -f api
   docker compose ps
 \end{lstlisting}
 
+\clearpage{}
+\subsection{Subir a Docker Hub}
+\noindent En las siguientes capturas enseñaremos los comandos para poder subir nuestro API a nuestra cuenta de \textbf{Docker hub}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{DOCKER-LOGIN.png}
+  \caption{Con este comando podemos iniciar sesión en \textbf{Docker hub} desde la terminal utilizando el comando \textbf{docker login}}
+  \label{fig:endpoints}
+\end{figure}
+
+\begin{lstlisting}[style=bash]
+  docker login
+\end{lstlisting}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{DOCKER-BUILD.png}
+  \caption{Con el siguiente comando costruimos la \texttt{imagen de docker} utilizando el comando \textbf{docker build -t <USERNAME>/<NAME>:latest .}}
+  \label{fig:endpoints}
+\end{figure}
+
+\begin{lstlisting}[style=bash]
+  docker build -t <USERNAME>/<NAME>:latest .
+\end{lstlisting}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{DOCKER-PUSH.png}
+  \caption{Con este último comando subimos la \texttt{imagen de docker} que contruimos con el paso anterior a nuestro repositorio de \textbf{Docker hub} utilizando el comando \textbf{docker push <USERNAME>/<NAME>:latest}}
+  \label{fig:endpoints}
+\end{figure}
+
+\begin{lstlisting}[style=bash]
+  docker push <USERNAME>/<NAME>:latest
+\end{lstlisting}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{DOCKER-HUB.png}
+  \caption{Verificamos que nuestra api que dockerizamos la tenemos subida a \textbf{Docker hub}, como podemos ver ya la tenemos subida perfectamente en nuestros repositorios.}
+  \label{fig:endpoints}
+\end{figure}
+
+\subsection{Creación de las Actions}
+
+
 \end{document}
