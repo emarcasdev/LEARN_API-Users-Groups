@@ -6,7 +6,7 @@ on:
       - main
       - master
     paths:
-      - 'api/**'
+      - '**'
       - '.github/workflows/deploy.yml'
   workflow_dispatch: # Permite ejecutar manualmente
 
@@ -34,8 +34,8 @@ jobs:
       - name: Construir y subir imagen Docker
         uses: docker/build-push-action@v5
         with:
-          context: ./api 
-          file: ./api/Dockerfile
+          context: . 
+          file: ./Dockerfile
           push: true
           tags: ${{ env.DOCKER_IMAGE_NAME }}:${{ env.DOCKER_TAG }}
           cache-from: type=registry,ref=${{ env.DOCKER_IMAGE_NAME }}:buildcache
