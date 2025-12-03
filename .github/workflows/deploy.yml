@@ -46,3 +46,22 @@ jobs:
           echo "Imagen construida y subida exitosamente:"
           echo "  - Imagen: ${{ env.DOCKER_IMAGE_NAME }}:${{ env.DOCKER_TAG }}"
           echo "  - Docker Hub: https://hub.docker.com/r/${{ secrets.DOCKER_USERNAME }}/api-classroom"
+
+      # Mandar notificacion de exito en discord
+      - name: Informe de éxito (Discord)
+        if: success()
+        run: |
+          curl -X POST \
+            -H "Content-Type: application/json" \
+            -d "{\"content\":\"✅ DESPLIEGUE ÉXITOSO en \`${{ github.repository }}\` (branch \`${{ github.ref_name }}\`). Imagen: \`${{ env.DOCKER_IMAGE_NAME }}:${{ env.DOCKER_TAG }}\`\"}" \
+            ${{ secrets.DISCORD_WEBHOOK_URL }}
+
+      # Mandar notificacion de que fallo en discord
+      - name: Informe de que fallo (Discord)
+        if: failure()
+        run: |
+          curl -X POST \
+            -H "Content-Type: application/json" \
+            -d "{\"content\":\"❌ FALLO EL DESPLIEGUE en \`${{ github.repository }}\` (branch \`${{ github.ref_name }}\`). Revisa logs: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}" \
+            ${{ secrets.DISCORD_WEBHOOK_URL }}
+
