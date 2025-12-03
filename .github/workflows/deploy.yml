@@ -48,7 +48,7 @@ jobs:
           echo "  - Docker Hub: https://hub.docker.com/r/${{ secrets.DOCKER_USERNAME }}/api-classroom"
 
       # Mandar notificacion de exito en discord
-      - name: Informe de éxito (Discord)
+      - name: Éxito de la Action (Discord)
         if: success()
         run: |
           curl -X POST \
@@ -57,7 +57,7 @@ jobs:
             ${{ secrets.DISCORD_WEBHOOK_URL }}
 
       # Mandar notificacion de que fallo en discord
-      - name: Informe de que fallo (Discord)
+      - name: Fallo de la Action (Discord)
         if: failure()
         run: |
           curl -X POST \
