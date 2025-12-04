@@ -600,7 +600,245 @@ docker compose logs -f api
   \label{fig:endpoints}
 \end{figure}
 
-\subsection{Creación de las Actions}
+\subsection{Github Actions}
+\noindent En este apartado configuraremos un \textbf{workflow de GitHub Actions} que, que cada vez que hagamos un push a nuestra rama principal, construya y suba automáticamente la
+imagen de Docker Hub. Además, añadiremos la funcionalidad de enviar una notificación a un canal de Discord informando del resultado del despliegue.
+\vspace{1em}
+\noindent Lo primero será crear la siguiente estructura de carpetas con el siguiente archivo, donde definieremos nuestra \textbf{GitHub Action}:
 
+\begin{lstlisting}[style=bash]
+  .github/
+  |___ workflows/
+      |___ deploy.yml
+\end{lstlisting}
+
+\noindent Código del \texttt{deploy.yml}:
+\begin{lstlisting}[style=bash]
+  name: Build and Push Docker Image
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - '**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch: # Permite ejecutar manualmente
+
+env:
+  DOCKER_IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/api-classroom
+  DOCKER_TAG: latest
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout codigo
+        uses: actions/checkout@v4
+
+      - name: Configurar Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login a Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Construir y subir imagen Docker
+        uses: docker/build-push-action@v5
+        with:
+          context: . 
+          file: ./Dockerfile
+          push: true
+          tags: ${{ env.DOCKER_IMAGE_NAME }}:${{ env.DOCKER_TAG }}
+          cache-from: type=registry,ref=${{ env.DOCKER_IMAGE_NAME }}:buildcache
+          cache-to: type=inline
+
+      - name: Mostrar informacion de la imagen
+        run: |
+          echo "Imagen construida y subida exitosamente:"
+          echo "  - Imagen: ${{ env.DOCKER_IMAGE_NAME }}:${{ env.DOCKER_TAG }}"
+          echo "  - Docker Hub: https://hub.docker.com/r/${{ secrets.DOCKER_USERNAME }}/api-classroom"
+\end{lstlisting}
+
+\clearpage{}
+\subsection*{Agregar los secrets a GitHub}
+\noindent A continuación, necesitamos ir a nuestro repositorio de GitHub y dirigirnos al apartado de configuración. Dentro de la categoría \textbf{security} seleccionamos la opción \textbf{secrets and variables}
+y, entraremos en la sección de \textbf{actions}.
+\vspace{0.5em}
+
+\noindent En está sección crearemos los \textbf{secrets} necesarios (nombre de usuario y el token de Docker Hub), que usaremos para realizar el inicio de sesión en Docker Hub desde el workflow, si no los configuramos la acción fallará.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{SECRETS.png}
+  \caption{Captura de los \textbf{secrets} que tenemos en el repositorio, que son el nombre de usuario y el token de Docker Hub.}
+  \label{fig:endpoints}
+\end{figure}
+
+\subsection*{Comprobación de que la action}
+\noindent Para poder verificar el resultado en nuestro repositorio nos dirigiremos al apartado de \textbf{actions} donde podremos ver el historial de ejecuciones del workflow y comprobar si han pasados correctamente o han fallado.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{DOCKER-ACTIONS.png}
+  \caption{En esta captura podemos ver que tuvimos 3 workflows, los dos primeros nos fallarón, pero resolvimos los fallos de credenciales y rutas, mientras que la última se ejecuto correctamente tras corregir esos errores.}
+  \label{fig:endpoints}
+\end{figure}
+
+\clearpage{}
+
+\subsection*{Funcionalidad de notificación en Discord}
+
+\noindent Ahora para poder implementar la funcionalidad de la notificación en Discord, primero realizaremos una serie de preparaciones en Discord para que nos notifique.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.8\linewidth]{DISCORD/CREAR-SERVER.png}
+  \caption{Creación de un servidor en Discord donde recibiremos las notificaciones del despliegue.}
+  \label{fig:endpoints}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.5\linewidth]{DISCORD/CREAR-CANAL.png}
+  \caption{Creación del canal de texto \textbf{\#github-actions} donde se publicarán las notificaciones.}
+  \label{fig:endpoints}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{DISCORD/AGREGAR-INTEGRACION-CANAL.png}
+  \caption{Menú de edición del canal de texto en Discord. Desde la sección de integraciones crearemos el \texttt{webhook}.}
+  \label{fig:endpoints}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{DISCORD/CREAR-WEBHOOKS.png}
+  \caption{configuración del \texttt{webhook}: nombre, canal y una imagen. Lo más importante en este punto es copiar la \textbf{URL} de \texttt{webhook} que usaremos en el workflow.}
+  \label{fig:endpoints}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{DISCORD/AGREGAR-WEBHOOKS-SECRET.png}
+  \caption{Agregamos la URL del \texttt{webhook} como \textbf{secret} en el repositorio de GitHub.}
+  \label{fig:endpoints}
+\end{figure}
+
+\clearpage{}
+\noindent Cuando ya tenemos configurado el servidor, el canal y el \texttt{webhook} en Discord, y hemos agregado a los secrets de nuestro repositorio la URL del \texttt{webhook},
+modificaremos el archivo \texttt{deploy.yml} agregando estás lineas al final del documento:
+
+\begin{lstlisting}[style=bash]
+  # Mandar notificacion de exito en discord
+  - name: Exito de la Action (Discord)
+    if: success()
+    run: |
+      curl -X POST \
+        -H "Content-Type: application/json" \
+        -d "{\"content\":\"DESPLIEGUE EXITOSO en \`${{ github.repository }}\` (branch \`${{ github.ref_name }}\`). Imagen: \`${{ env.DOCKER_IMAGE_NAME }}:${{ env.DOCKER_TAG }}\`\"}" \
+        ${{ secrets.DISCORD_WEBHOOK_URL }}
+
+  # Mandar notificacion de que fallo en discord
+  - name: Fallo de la Action (Discord)
+    if: failure()
+    run: |
+      curl -X POST \
+        -H "Content-Type: application/json" \
+        -d "{\"content\":\"FALLO EL DESPLIEGUE en \`${{ github.repository }}\` (branch \`${{ github.ref_name }}\`). Revisa logs: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}" \
+        ${{ secrets.DISCORD_WEBHOOK_URL }}
+\end{lstlisting}
+
+\noindent Y a continuación se mostrarán las verificaciones de su funcionamiento:
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.7\linewidth]{DISCORD/NOTIFICACION.png}
+  \caption{Captura de la notificación de éxito en Discord, verificando que se implemento correctamente la funcionalidad.}
+  \label{fig:endpoints}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{DISCORD/COMPROBACION-SERVER.png}
+  \caption{En esta captura vemos como en el canal de texto \textbf{\#github-actions} de nuestro servidor se registran todos los mensajes sobre los despliegues.}
+  \label{fig:endpoints}
+\end{figure}
+
+\section*{Archivo \texttt{deploy.yml} completo}
+
+\begin{lstlisting}[style=bash]
+  name: Build and Push Docker Image
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - '**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch: # Permite ejecutar manualmente
+
+env:
+  DOCKER_IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/api-classroom
+  DOCKER_TAG: latest
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout codigo
+        uses: actions/checkout@v4
+
+      - name: Configurar Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login a Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Construir y subir imagen Docker
+        uses: docker/build-push-action@v5
+        with:
+          context: . 
+          file: ./Dockerfile
+          push: true
+          tags: ${{ env.DOCKER_IMAGE_NAME }}:${{ env.DOCKER_TAG }}
+          cache-from: type=registry,ref=${{ env.DOCKER_IMAGE_NAME }}:buildcache
+          cache-to: type=inline
+
+      - name: Mostrar informacion de la imagen
+        run: |
+          echo "Imagen construida y subida exitosamente:"
+          echo "  - Imagen: ${{ env.DOCKER_IMAGE_NAME }}:${{ env.DOCKER_TAG }}"
+          echo "  - Docker Hub: https://hub.docker.com/r/${{ secrets.DOCKER_USERNAME }}/api-classroom"
+
+      # Mandar notificacion de exito en discord
+      - name: Exito de la Action (Discord)
+        if: success()
+        run: |
+          curl -X POST \
+            -H "Content-Type: application/json" \
+            -d "{\"content\":\"DESPLIEGUE EXITOSO en \`${{ github.repository }}\` (branch \`${{ github.ref_name }}\`). Imagen: \`${{ env.DOCKER_IMAGE_NAME }}:${{ env.DOCKER_TAG }}\`\"}" \
+            ${{ secrets.DISCORD_WEBHOOK_URL }}
+
+      # Mandar notificacion de que fallo en discord
+      - name: Fallo de la Action (Discord)
+        if: failure()
+        run: |
+          curl -X POST \
+            -H "Content-Type: application/json" \
+            -d "{\"content\":\"FALLO EL DESPLIEGUE en \`${{ github.repository }}\` (branch \`${{ github.ref_name }}\`). Revisa logs: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}" \
+            ${{ secrets.DISCORD_WEBHOOK_URL }}
+\end{lstlisting}
 
 \end{document}
