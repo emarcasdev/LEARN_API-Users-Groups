@@ -83,7 +83,7 @@ async function createTablesIfNotExist() {
 
 // Endopoint default
 app.get("/", async (req, res) => {
-  res.send("API FUNCIONANDO");
+  res.send("API USUARIOS Y GRUPOS FUNCIONANDO");
 });
 
 // Endpoint para recuperar todas los usuarios y grupos
