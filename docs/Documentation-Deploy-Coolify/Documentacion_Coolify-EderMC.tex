@@ -1,0 +1,613 @@
+\documentclass[a4paper,12pt]{article}
+% ===== Idioma y codificación =====
+\usepackage[spanish]{babel}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+% ===== Tipografía =====
+\usepackage{mathpazo}
+% ===== Márgenes =====
+\usepackage[margin=2.5cm]{geometry}
+% ===== Interlineado =====
+\usepackage{setspace}
+\onehalfspacing  % 1.5
+% ===== Imagenes =====
+\usepackage{graphicx}
+\graphicspath{{images/}}
+\usepackage{caption}
+\captionsetup[figure]{labelfont=bf,labelsep=period,name=Figura}
+% ===== Tablas =====
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{float}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\captionsetup[table]{labelfont=bf,labelsep=period,name=Tabla}
+% ===== Hipervínculos =====
+\usepackage{xurl}
+\usepackage[hidelinks,breaklinks=true]{hyperref}
+% ===== Código =====
+\usepackage{xcolor}
+\usepackage{listings}
+\definecolor{codebg}{RGB}{245,245,245}
+\lstdefinestyle{bash}{
+  language=bash,
+  basicstyle=\ttfamily\small,
+  backgroundcolor=\color{codebg},
+  frame=single,
+  breaklines=true,
+  showstringspaces=false
+}
+% ===== Estilo de secciones =====
+\usepackage{titlesec}
+\titleformat{\section}{\Large\bfseries}{\thesection}{0.5em}{}
+\titleformat{\subsection}{\large\bfseries}{\thesubsection}{0.5em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries}{\thesubsubsection}{0.5em}{}
+% ===== Encabezado y pie =====
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{Despliegue con Coolify}
+\fancyhead[R]{2º DAM}
+\fancyfoot[C]{\thepage}
+% ===== Bibliografía =====
+\usepackage[style=apa,sorting=nyt,backend=biber]{biblatex}
+\addbibresource{bibliografia.bib}
+\usepackage{csquotes}
+% ===== Índice =====
+\usepackage{tocloft}
+\renewcommand{\contentsname}{}
+\addto\captionsspanish{\renewcommand{\contentsname}{}}
+\setlength{\cftbeforesecskip}{4pt}
+\setlength{\cftbeforesubsecskip}{2pt}
+\setlength{\cftsecindent}{0pt}
+\setlength{\cftsubsecindent}{1.5em}
+\renewcommand{\cftsecfont}{\bfseries}
+\renewcommand{\cftsubsecfont}{\normalfont}
+\renewcommand{\cftsecleader}{\cftdotfill{\cftdotsep}}
+\renewcommand{\cftsubsecleader}{\cftdotfill{\cftdotsep}}
+\renewcommand{\cftsubsubsecleader}{\cftdotfill{\cftdotsep}}
+
+\begin{document}
+
+\begin{titlepage}
+  \centering
+  \vspace*{3cm}
+
+  {\Huge\bfseries DESPLIEGUE CON COOLIFY\par}
+  \vspace{1.5cm}
+
+  {\Large Configuración de Coolify para el despliegue de proyectos\par}
+  \vspace{2cm}
+
+  {\large Eder Martínez Castro\par}
+  \vspace{0.5cm}
+
+  {\large Desarrollo de Aplicaciones Multiplataforma\par}
+  \vfill
+
+  {\large \today\par}
+\end{titlepage}
+
+\begin{center}
+  {\Large\bfseries Tabla de contenidos}
+\end{center}
+\tableofcontents
+\clearpage
+
+\title{DOCUMENTACIÓN\\\LARGE DESPLIEGUE COOLIFY}
+
+\section{OBJETIVO}
+\noindent El objetivo de está práctica es desplegar \textbf{Coolify} en una máquina virtual \textbf{Ubuntu}, configurándola
+como un entorno \texttt{self-hosted}. Además, utilizaremos \textbf{Ngrok} para poder exponer nuestro servicio de forma externa
+y poder permitir el acceso a la interfaz web de Coolify, sin necesidad de tener un IP pública fija.
+
+\vspace{1em}
+
+\noindent \underline{RECORDATORIO}:
+
+\vspace{0.5em}
+
+\noindent Antes de empezar la prática debemos instalar un \textbf{máquina virtual Linux} (recomendación Ubuntu),para ello hay que tener
+la \texttt{iso} de nuestra distro elegida y usaremos \textbf{Oracle VirtualBox} para crear la máquina virtual.
+
+\vspace{1em}
+
+\noindent \textbf{Configuraciones} de nuestra máquina virtual:
+
+\begin{itemize}
+  \item \textbf{Sistema operativo}: Ubuntu (64-bit).
+  \item \textbf{Memoria base (RAM)}: 8 GB.
+  \item \textbf{Procesadores}: 4 CPUs.
+  \item \textbf{Almacenamiento (Disco Duro)}: 60 GB.
+  \item \textbf{Red}: Adaptador puente.
+\end{itemize}
+
+\vspace{0.5em}
+
+\noindent Página para descargar \textbf{Oracle VirtualBox}: \url{https://www.oracle.com/es/virtualization/technologies/vm/downloads/virtualbox-downloads.html}
+
+\vspace{0.5em}
+
+\noindent Página para descargar el \texttt{.iso} de \textbf{Ubuntu}: \url{https://ubuntu.com/download/desktop}
+
+\vspace{1em}
+
+\noindent Cuando tengamos nuestra máquina virtual lista con Ubuntu ya instalado, lo primero que vamos a hacer es
+abrir la terminal y \textbf{instalar el paquete} \texttt{curl} para instalar tanto Coolify y Ngrok.
+
+\vspace{0.5em}
+
+\begin{lstlisting}[style=bash]
+  sudo apt install curl
+\end{lstlisting}
+
+\clearpage
+
+\section{COOLIFY}
+\noindent Coolify es una \textbf{plataforma de despliegue y gestión de aplicaciones}, que nos permite alojar y administrar nuestros proyectos
+en servidores propios, esto nos ofrece mayor control sobre la infraestructura.
+
+\subsection{Instalación de Coolify}
+\noindent En este apartado vamos a empezar con la instalación de coolify en nuestra máquina virtual Ubuntu.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{1-COMANDO-INSTALAR.png}
+  \caption{Web oficial de coolify para obtener el comando para instalarlo en \texttt{self-host}.}
+\end{figure}
+
+\noindent Para poder obtener el \textbf{comando de instalación de Coolify}, nos iremos a la página oficial de Coolify en la sección de despliegue
+\texttt{self-hosted}. En ella encontraremos el comando oficial que nos proporciona la plataforma para realizar la \textbf{instalación automática} de Coolify
+\textbf{en nuestro servidor propio} (máquina virtual).
+
+\vspace{1em}
+
+\noindent Este comando descarga y ejecuta un script que instala todas las dependencias necesarias como \textbf{Docker} y \textbf{Docker Compose}, además de \textbf{configurar el entorno inicial} de Coolify:
+\begin{lstlisting}[style=bash]
+  curl -fsSL https://cdn.coollabs.io/coolify/install.sh | sudo bash 
+\end{lstlisting}
+
+\vspace{0.5em}
+\noindent Página oficial de Coolify: \url{https://coolify.io/self-hosted/}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{1-EJECUTAR-COMANDO.png}
+  \caption{Ejecutamos el comando para instalar el self-host de coolify.}
+\end{figure}
+
+\noindent Ahora ejecutaremos el comando previamente copiado, en nuestra \textbf{terminal} de la máquina virtual.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{1-COOLIFY-INSTALADO.png}
+  \caption{Captura de la terminal cuando ya termino de instalar el self-host de coolify en nuestro equipo.}
+\end{figure}
+
+\noindent Como podemos ver ya termino la \textbf{instalación de Coolify} correctamente, con esto ya tendríamos la plataforma lista para acceder desde el navegador
+web de nuestro equipo mediante la \texttt{IP} de nuestra máquina y el puerto \texttt{8000} como nos indica en la captura.
+
+\subsection{Obtener la IP pública}
+
+\noindent Para poder conectarnos desde nuestro equipo a la \textbf{máquina virtual ubuntu} donde tenemos instalado \textbf{coolify}, debemos saber nuestra
+\texttt{dirección IP pública}, para así conectarnos y ver el incio de sesión de coolify.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{1-OBTENER-IP.png}
+  \caption{Resultado de ejecutar \texttt{ifconfig} para saber nuestra dirección IP pública.}
+\end{figure}
+
+\noindent Como podemos apreciar en la imagen en la segunda línea donde pone \textbf{inet} tenemos nuestra dirección IP pública que es
+\texttt{10.190.180.179}. 
+
+\vspace{1em}
+\noindent Para poder obtener la dirección IP teneís que hacer lo siguiente:
+
+\vspace{1em}
+\noindent Instalamos el paquete \texttt{net-tools}:
+\begin{lstlisting}[style=bash]
+  sudo apt install net-tools
+\end{lstlisting}
+
+\vspace{0.5em}
+\noindent Para poder consultar las \textbf{interfaces de red} y ver nustra IP pública:
+\begin{lstlisting}[style=bash]
+  ifconfig
+\end{lstlisting}
+
+\clearpage
+
+\subsection{Verificar el acceso a Coolify}
+\noindent Ahora vamos a verificar que podemos acceder a la interfaz de coolify desde nuestro equipo.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{1-CONECTARNOS-MV.png}
+  \caption{Interfaz web de Coolify con la página de crear una cuenta.}
+\end{figure}
+
+\noindent Para conectarnos y ver la pantalla de registro de coolify, tenemos que irnos a nuestro equipo y en 
+nuestro navegador buscamos lo siguiente \texttt{"http://<IP\_MÁQUINA>:8000"} y debería salirnos lo mismo que sale en la captura.
+
+\clearpage
+
+\subsection{Configuración de coolify}
+\noindent Para terminar con la preparación de coolify, solo nos falta realizar unas configuraciones rápidas.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{1-BIENVENIDA-COOLIFY.png}
+  \caption{Pantalla con un mensaje de bienvenida después de haber creado una cuenta en coolify.}
+\end{figure}
+
+\noindent Tras crear la cuenta, Coolify nos mostrara la \textbf{pantalla de bienvenida}, donde se confirma que el registro se ha realizado correctamente. 
+Aquí nos dice que vamos a configurar la \textbf{conexión del servidor} mediante \texttt{SSH}, la \textbf{instalación del entorno Docker} y la \textbf{organización de los proyectos}.
+
+\vspace{0.5em}
+
+\noindent Ahora pulsaremos \texttt{"Let's go!"} esto nos iniciara el asistente de configuración para realizar las configuraciones necesarias, la opción \texttt{"Skip Setup"} omitira la configuración y accederemos directamente a la plataforma.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{1-ELEGIR-TIPO-SERVIDOR.png}
+  \caption{Pantalla para elegir el tipo de servidor que queremos}
+\end{figure}
+
+\noindent Como podemos ver ahora nos tacará \textbf{elegir el tipo de servidor} que necesitamos, para está prática elegiremos la opción de \texttt{"This Machine"} para utilizar nuestro ordenenador como servidor.
+
+\vspace{0.5em}
+
+\noindent Cuando lo seleccionaresmos podremos crear nuestro primer proyecto o ir a la aplicación derectamente.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{1-DASHBOARD-COOLIFY.png}
+  \caption{Página del dashboard de Coolify}
+\end{figure}
+
+\noindent Como podemos ver ya terminamos de configurar y ya tenemos nuestro \textbf{coolify listo} para poder trabajar con él.
+
+\section{NGROK}
+\noindent Ngrok es una \textbf{herramienta} que permite \textbf{exponer servicios locales} a internet mediante túneles.
+Esto es especialmente útil en entornos de desarrollo y pruebas, ya que nos quita de configuraciones complejas de
+red.
+
+\vspace{1em}
+
+\noindent En este caso, usaremos Ngrok para poder \textbf{hacer accesible el panel web de Coolify} desde cualquier navegador.
+
+\clearpage
+
+\subsection{Instalación de Ngrok}
+\noindent En este apartado vamos a realizar la instalación de Ngrok en nuestra máquina virtual Ubuntu.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{2-COMANDO-INSTALAR.png}
+  \caption{Web oficial de ngrok para obtener el comando para instalarlo.}
+\end{figure}
+
+\noindent Para poder obtener el \textbf{comando de instalación de Ngrok}, nos iremos a la página oficial de Ngrok y allí nos creamos una cuenta y iniciaremos sesión, cuando ya estemos autentificados en Ngrok
+estaremos en esta pantalla y bajaremos hasta llegar a la parte de \textbf{connect} y copiaremos el comando.
+
+\vspace{1em}
+
+\noindent Este comando añade el \textbf{repositorio oficial de Ngrok} y permite su instalación mediante el gestor de paquetes \texttt{apt}:
+\begin{lstlisting}[style=bash]
+  curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
+  | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null \
+  && echo "deb https://ngrok-agent.s3.amazonaws.com bookworm main" \
+  | sudo tee /etc/apt/sources.list.d/ngrok.list \
+  && sudo apt update \
+  && sudo apt install ngrok
+\end{lstlisting}
+
+\vspace{0.5em}
+\noindent Página oficial de Ngrok: \url{https://ngrok.com/}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{2-EJECUTAR-COMANDO.png}
+  \caption{Ejecutamos el comando para instalar ngrok.}
+\end{figure}
+
+\noindent Ahora vamos a ejecutar el comando que copiamos anteriormente, en nuetra \textbf{terminal} de la máquina virtual.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{2-NGROK-INSTALADO.png}
+  \caption{Captura de la terminal cuando ya termino de instalar ngrok en nuestro equipo.}
+\end{figure}
+
+\noindent Como podemos ver ya termino la \textbf{instalación de Ngrok} correctamente, ahora ya podemos crear \texttt{túneles seguros} que expongan nuestros servicios locales a \texttt{Internet}.
+
+\subsection{Verificación conexión con Ngrok}
+\noindent Ahora vamos a verificar que podemos acceder desde nuestra equipo a nuestro Coolify en la máquina virtual a través de \textbf{Ngrok}.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{2-COMANDO-AUTENTICAR-NGROK.png}
+  \caption{Ejecución del comando \texttt{ngrok config add-authtoken} para autenticar ngrok.}
+\end{figure}
+
+\noindent Tenemos que ejecutar este comando para poder \textbf{autenticar el cliente de ngrok}
+que instalamos en nuestra máquina virtual con nuestra cuenta de Ngrok. Esto es necesario
+para poder \textbf{crear túneles seguros y estables} entre el servicio local y el exterior.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{2-COMANDO-NGROK-HTTP-8000.png}
+  \caption{Ejecución del comando \texttt{ngrok http 8000} para exponer el servicio a través de un túnel público.}
+\end{figure}
+
+\noindent Al ejecutar este comando \textbf{creamos un túnel público seguro} que expone nuetro servicio que se esta ejecutando
+en el \texttt{puerto 8000} de nuestra máquina virtual que es nuestro \textbf{Coolify} a través de internet usando Ngrok.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{2-ESTADO-TUNEL-NGROK-ACTIVO.png}
+  \caption{Estado del túnel ngrok activo y la URL pública generada para acceder al servicio.}
+\end{figure}
+
+\noindent Después de ejecutar el comando anterior para crear el túnel, en nuestra terminal se nos \textbf{mostrará el estado del túnel},
+y nos mostrará la \textbf{URL pública https para poder acceder a nuestro servicio} de Coolify que está corriendo en el \texttt{puerto 8000}.
+
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{2-COOLIFY-ACCESO-WEB-NGROK.png}
+  \caption{Inicio de sesión de Coolify accesible por la URL pública generada por Ngrok.}
+\end{figure}
+
+\noindent Como vemos en la imagen, hemos podido acceder a \textbf{nuestro Coolify} a través de túnel público creado con Ngrok, verificando que
+configuramos correctamente Ngrok.
+
+\clearpage
+
+\section{DESPLEGAR NUESTRO PRIMER PROYECTO}
+\noindent Ahora vamos a realizar el despliegue de nuestra API realizada en \textbf{Express.js} y con base de datos \textbf{Maria DB} utilizando \textbf{Coolify}. Esta API la tenemos subida en nuestro GitHub: \url{https://github.com/emarcasdev/LEARN_API-Users-Groups}.
+
+\subsection{Crear nuevo proyecto}
+\noindent Ahora vamos a ver que necesitamos para crear un nuevo proyecto en Coolify
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{3-CREAR-PROJECT.png}
+  \caption{Botón para crear el nuevo proyecto en Coolify en nuestro caso es el primero.}
+\end{figure}
+
+\noindent Para crear nuestro primer proyecto solo tendremos que clicar en \textbf{"My first proyect"} y luego tendremos que agregar los siguientes recursos:
+\begin{itemize}
+  \item Recurso para la \textbf{base de datos} en nuestro caso Maria DB.
+  \item Recurso para la \textbf{aplicación} la API que tenemos subida en GitHub.
+\end{itemize}
+
+\subsection{Creación de la base de datos (Maria DB)}
+\noindent A continuación veremos la creación y configuración del recurso de base de datos en Coolify para poder realizar el despliegue.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{3-RECURSO-BASE-DATOS.png}
+  \caption{Aquí vemos todas las bases de datos que podemos crear para nuestro despliegue.}
+\end{figure}
+
+\noindent Para desplegar nuestro proyecto, al haber utilizado \textbf{MariaDB} en nuestra API eligiremos está opción para poder crear la base de datos para el despliegue.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{3-CONFIGURACION-BASE-DATOS.png}
+  \caption{Configuración básica de nuestra base de datos para el despliegue.}
+\end{figure}
+
+\noindent En el panel de configuración de nuestra base de datos \textbf{MariaDB}, podemos ver que tenemos las credenciales de acceso, la base de datos y la imagen de \textbf{Docker} utilizada. Nosotros solo modificaremos los siguiente el puerto público en nuestro caso el \texttt{5000} y marcaremos la visibilidad del servicio como pública.
+Con estos ajustes hacemos que la base de datos funcione correctamente y que sea accesible por las aplicaciones desplegadas.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{3-RUNNING-BASE-DATOS.png}
+  \caption{Verificación de que la base de datos \textbf{MariaDB} está corriendo}
+\end{figure}
+
+\noindent Después de haber terminado con la configuración del recurso de \textbf{MariaDB}, lo iniciaremos y esperaremos se inicialice y esté activa, eso lo podemos ver por el texto en verde que nos pone que esta corriendo correctamente como se aprecía en la imagen.
+
+\subsection{Creación de la aplicación (API Express.js)}
+\noindent A continuación veremos la creación y configuración del recurso de aplicación en Coolify para poder realizar el despliegue.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{3-RECURSO-APLICACION.png}
+  \caption{Como podemos ver tenemos varias formas de subir nuestra aplicacion a coolify}
+\end{figure}
+
+\noindent Para desplegar nuestro proyecto, al haber subido el código de nuestra API en github, eligiremos está opción de repositorio público para el despliegue.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{3-CREAR-APLICACION.png}
+  \caption{Captura donde creamos la aplicación basada en nuestro repositorio público}
+\end{figure}
+
+\noindent Para crear la nueva aplicación debemos escribir lo siguiente la URL de nuestro \textbf{repositorio público}, el Build Pack usaremos \textbf{Dockerfile} y en mi caso el directorio base sera el raiz. 
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{3-CONFIGURACION-APLICACION-I.png}
+  \caption{Configuración básica de nuestra aplicación para el despliegue}
+\end{figure}
+
+\noindent En el panel de configuración de la aplicación a desplegar, definimos que el método de construcción sea el \texttt{Dockerfile},
+el dominio con el cuál accederemos y el puerto en el que expondremos la aplicación será el \texttt{6060}.
+Con estos parámetros tenemos lo necesario para el correcto despliegue y acceso a la aplicación.
+
+\vspace{1em}
+
+\noindent \underline{NOTA}:
+
+\vspace{0.5em}
+
+\noindent Importante para que funcione el dominio que nos dío Coolify tenemos que \textbf{poner la IP de la máquina virtual} en vez de la IP que pone por defecto porque puede estar mal.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{3-VARIABLES-ENTORNO-APLICACION.png}
+  \caption{Captura donde definimos las variables de entorno para la aplicación.}
+\end{figure}
+
+\noindent En las variables de entorno nos pondremos en el modo desarrollador para facilitar el poder escribirlas,
+donde definimos las partes de la uri de \textbf{MariaDB} y los nombres de la tablas.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{3-DESPLIEGUE-APLICACION.png}
+  \caption{Captura del despliegue de nuestra aplicación.}
+\end{figure}
+
+\noindent Aquí podemos ver el \textbf{log del despliegue de nuestra aplicación}, podemos ver como se construyo la imagen de Docker, y vemos como el proceso
+finalizo correctamente y la aplición queda lista y accesible. 
+
+\subsection{Verifición del despliegue}
+\noindent Ahora vamos a verificar que nuestra \textbf{API} está desplegada en la URL que nos había generado \textbf{Coolify}, para ver si podemos acceder.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{3-VERIFICACION-I.png}
+  \caption{Mensaje de que la API está funcionando}
+\end{figure}
+
+\noindent Como podemos ver al poner la URL en nuestra navegador nos muestra nuestra API desplegada a través de Coolify, así que podemos decir que el despliegue fue éxitoso.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{3-VERIFICACION-II.png}
+  \caption{Prueba de recuperar los usarios y grupos de nuestra base de datos}
+\end{figure}
+
+\noindent Y para finalizar vamos a probar nuestra petición \texttt{GET} para recuperar los usuarios y grupos de nuestra base de datos, y como se puede ver nos muestra los usuarios y grupos vácios porque todavía no hay, pero esto nos confirma que la \textbf{API funciona correctamente}.
+
+\subsection{Creación de un puente para exponer la API}
+\noindent Ahora vamos a crear un puente para exponer nuestra API pero de forma que podamos \textbf{acceder} a ella \textbf{desde fuera de la red}. Esto nos generará una URL pública HTTPS que redirigirá las solicitudes hacia nuestro servicio.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{4-COMANDO-CREAR-PUENTE.png}
+  \caption{Ejecución del comando \texttt{ngrok http 80 --host-header=URL} para exponer el servicio a través de un túnel público.}
+\end{figure}
+
+\noindent Al ejecutar este comando, creamos un túnel que expone el
+servicio que está corriendo en la \textbf{máquina virtual}. 
+De esta forma, las solicitudes que lleguen a la URL pública de ngrok
+se redirigen al \textbf{puerto configurado} del servidor, permitiendo el acceso
+\textbf{desde fuera de la red local}.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{4-CREAR-PUENTE-DE-LA-API.png}
+  \caption{Estado del túnel ngrok activo y la URL pública generada para acceder al servicio.}
+\end{figure}
+
+\noindent Una vez creado el túnel, la terminal muestra el \textbf{estado de la sesión}
+y la \textbf{URL pública HTTPS} generada por ngrok. Este enlace
+nos permitira acceder al servicio, ya que cualquier
+petición enviada a esa URL será encaminada automáticamente hacia el
+servicio que se está ejecutando en el \texttt{puerto 80}.
+
+\vspace{0.7cm}
+
+\noindent Para concluir, vamos a mostrar las capturas donde demostramos que nos accedemos a la API tanto como en el ordenador como en móvil correctamente.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{4-VERIFICACION-API-I.png}
+  \caption{Comprobación de que podemos acceder a la API directamente con el enlace del puente de Ngrok (Ordenador)}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.3\linewidth]{4-VERIFICACIÓN-API-MOVIL.png}
+  \caption{Comprobación de que podemos acceder a la API directamente con el enlace del puente de Ngrok (Móvil)}
+\end{figure}
+
+\clearpage
+\subsection{Agregar CI/CD}
+\noindent Ahora para finalizar esta práctica vamos a agregar CI/CD a nuestro proyecto desplegado en Coolify.
+
+\subsubsection{Creación y configuración del webhook}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{5-CONFIGURE-AUTO-DEPLOY.png}
+  \caption{Opciones avanzadas de nuestro proyecto en coolify}
+\end{figure}
+
+\noindent Nos dirigiremos al apartado de webhook, para \textbf{verificar el auto-deploy} para saber si la tenemos activa o activarla en el caso en que no estuviera, para así poder hacer que el proyecto se auto despliegue cada vez hagamos un push a nuestro repositorio.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{5-OBTENER-WEBHOOK-COOLIFY.png}
+  \caption{Obtener la ruta para el \texttt{webhoook} y crear el \texttt{secret}}
+\end{figure}
+
+\noindent Ahora iremos al apartado de webhook y ahí nos interesa el enlace que nos sale en la
+sección de github pero \textbf{sustituyendo la dirección ip y el puerto} por nuesta \textbf{ruta generada por 
+ngrok} y luego en la sección de GitHub Webhook Secret \textbf{crearemos un secret manualmente}.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{5-AGREGAR-WEBHOOOK-GITHUB.png}
+  \caption{Crear webhook en github}
+\end{figure}
+
+\noindent Para crear el webhook en github nos dirigiremos al apartado de
+configuración y en la sección de Code and automation entraremos en la
+opción de Webhooks, y como vemos en la captura le daremos al botón de add para \textbf{crear nuestro webhook}.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{5-CONFIGURACION-WEBHOOK.png}
+  \caption{Configuración del webhook en github}
+\end{figure}
+
+\noindent Ahora en la configuración debemos rellenar el \textbf{Payload URL} con 
+https://charmaine-unoffendable-wilhemina.ngrok-free.dev/webhooks/source/github/events/manual y el \textbf{secret} ponemos el que creamos manualmente anteriormente, lo demás no hace falta modificarlo.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{5-WEBHOOK-CREADO.png}
+  \caption{Webhook creado en github }
+\end{figure}
+
+\noindent Como podemos ver ahora \textbf{se creo el webhook correctamente}, nos sale en gris porque todavía no se ejecuto el hook al no haber hecho ningún push.
+
+\subsubsection{Comprobación del funcionando}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{5-VERSION-PREVIA.png}
+  \caption{Estado actual de nuestro proyecto sin haber subido cambios al repositorio}
+\end{figure}
+
+\noindent Como vemos en la pantalla vemos el \textbf{estado actual} antes de hacer el commit y el push, modificando así la API,
+el cambio va a ser simple y es \textbf{modificar la salida del endpoint default} de nuestra API.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.9\linewidth]{5-WEBHOOK-EJECUTADO-CORRECTAMENTE.png}
+  \caption{Webhook lanzado correctamente, ya que detecto el push correctamente}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.9\linewidth]{5-DETALLES-WEBHOOK_LANZADO.png}
+  \caption{Detalles de que el webhook se lanzo correctamente}
+\end{figure}
+
+\noindent Ahora vemos que el \textbf{hook se ejecuto correctamente}, indicando que detecto el push correctamente y que se auto desplego correctamente en Coolify.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\linewidth]{5-VERSION-AUTO-DESPLEGADA.png}
+  \caption{Comprobación de la API actulizada despues del auto despliegue}
+\end{figure}
+
+\noindent Ahora \textbf{verificamos que se auto desplego correctamente}, comprobando que se aplicaron el cambio que hicimos anteriormente.
+
+\end{document}
