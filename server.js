@@ -81,9 +81,9 @@ async function createTablesIfNotExist() {
   `);
 }
 
-// Endopoint default
+// Endpoint default
 app.get("/", async (req, res) => {
-  res.send("API USUARIOS Y GRUPOS FUNCIONANDO CORRRECTAMENTE");
+  res.send("API USUARIOS Y GRUPOS FUNCIONANDO CORRRECTAMENTE (PRUEBA DEL FUNCIONAMIENTO DE INNGEST)");
 });
 
 // Endpoint para recuperar todas los usuarios y grupos
